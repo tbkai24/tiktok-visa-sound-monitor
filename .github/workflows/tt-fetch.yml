@@ -50,7 +50,7 @@ jobs:
         run: python scripts/tt_try_fetch.py
 
       - name: Notify failure (Discord)
-        if: ${{ failure() && secrets.DISCORD_WEBHOOK_URL != '' }}
+        if: ${{ failure() && env.DISCORD_WEBHOOK_URL != '' }}
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |

@@ -4,6 +4,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "*/30 * * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/tt-fetch.yml"
+      - "scripts/tt_try_fetch.py"
 
 concurrency:
   group: tt-fetch

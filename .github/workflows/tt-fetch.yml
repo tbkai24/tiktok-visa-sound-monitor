@@ -59,7 +59,7 @@ jobs:
           TTVM_TIKTOK_MS_TOKEN: ${{ secrets.TTVM_TIKTOK_MS_TOKEN }}
           TTVM_TIKTOK_PROXY: ${{ secrets.TTVM_TIKTOK_PROXY }}
           TTVM_TIKTOK_BROWSER: "chromium"
-          TTVM_TIKTOK_HEADLESS: "false"
+          TTVM_TIKTOK_HEADLESS: "true"
           TTVM_SESSION_SLEEP_AFTER_SECONDS: "5"
           TTVM_MAX_VIDEOS_PER_SOUND: "200"
           TTVM_FETCH_RETRIES: "5"

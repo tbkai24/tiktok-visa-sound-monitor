@@ -194,14 +194,27 @@ async def collect_videos_with_retries(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     last_error: Exception | None = None
     attempts = max(1, retries)
+    strategy_profiles: list[tuple[str, bool]] = []
+    for profile in [
+        (browser, headless),
+        ("webkit", True),
+        ("chromium", True),
+    ]:
+        if profile not in strategy_profiles:
+            strategy_profiles.append(profile)
     for attempt in range(1, attempts + 1):
+        selected_browser, selected_headless = strategy_profiles[(attempt - 1) % len(strategy_profiles)]
         try:
+            print(
+                f"Fetch attempt {attempt}/{attempts} using browser={selected_browser}, headless={selected_headless}",
+                file=sys.stderr,
+            )
             return await collect_videos(
                 sound_ids=sound_ids,
                 max_videos_per_sound=max_videos_per_sound,
                 ms_token=ms_token,
-                browser=browser,
-                headless=headless,
+                browser=selected_browser,
+                headless=selected_headless,
                 session_sleep_after_seconds=session_sleep_after_seconds,
                 proxies=proxies,
             )
@@ -241,6 +254,11 @@ async def main() -> int:
             file=sys.stderr,
         )
         return 1
+    if not proxies:
+        print(
+            "Warning: TTVM_TIKTOK_PROXY is not set. GitHub-hosted runners are often rate-limited or blocked by TikTok.",
+            file=sys.stderr,
+        )
 
     function_url = f"{supabase_url}/functions/v1/{function_name}"
     print(f"Fetching TikTok videos for sounds: {', '.join(sound_ids)}")

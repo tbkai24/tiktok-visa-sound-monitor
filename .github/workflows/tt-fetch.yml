@@ -34,9 +34,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install TikTokApi playwright
-          python -m playwright install webkit --with-deps
-          python -m playwright install-deps webkit
-          python -m playwright install webkit
+          python -m playwright install chromium --with-deps
+          python -m playwright install-deps chromium
+          python -m playwright install chromium
 
       - name: Verify Playwright browser
         env:
@@ -45,9 +45,9 @@ jobs:
           python - <<'PY'
           from playwright.sync_api import sync_playwright
           with sync_playwright() as p:
-              browser = p.webkit.launch(headless=True)
+              browser = p.chromium.launch(headless=True)
               browser.close()
-          print("Playwright webkit is ready.")
+          print("Playwright chromium is ready.")
           PY
 
       - name: Run fetch script
@@ -58,7 +58,7 @@ jobs:
           TTVM_TIKTOK_SOUND_IDS: ${{ secrets.TTVM_TIKTOK_SOUND_IDS }}
           TTVM_TIKTOK_MS_TOKEN: ${{ secrets.TTVM_TIKTOK_MS_TOKEN }}
           TTVM_TIKTOK_PROXY: ${{ secrets.TTVM_TIKTOK_PROXY }}
-          TTVM_TIKTOK_BROWSER: "webkit"
+          TTVM_TIKTOK_BROWSER: "chromium"
           TTVM_TIKTOK_HEADLESS: "false"
           TTVM_SESSION_SLEEP_AFTER_SECONDS: "5"
           TTVM_MAX_VIDEOS_PER_SOUND: "200"

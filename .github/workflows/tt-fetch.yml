@@ -29,13 +29,30 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: "0"
         run: |
           python -m pip install --upgrade pip
           pip install TikTokApi playwright
           python -m playwright install webkit --with-deps
+          python -m playwright install-deps webkit
+          python -m playwright install webkit
+
+      - name: Verify Playwright browser
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: "0"
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser = p.webkit.launch(headless=True)
+              browser.close()
+          print("Playwright webkit is ready.")
+          PY
 
       - name: Run fetch script
         env:
+          PLAYWRIGHT_BROWSERS_PATH: "0"
           TTVM_SUPABASE_URL: ${{ secrets.TTVM_SUPABASE_URL }}
           TTVM_SUPABASE_ANON_KEY: ${{ secrets.TTVM_SUPABASE_ANON_KEY }}
           TTVM_TIKTOK_SOUND_IDS: ${{ secrets.TTVM_TIKTOK_SOUND_IDS }}

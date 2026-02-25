@@ -1,0 +1,41 @@
+name: TikTok Fetch (30m)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+concurrency:
+  group: tt-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install TikTokApi playwright
+          python -m playwright install chromium --with-deps
+
+      - name: Run fetch script
+        env:
+          TTVM_SUPABASE_URL: ${{ secrets.TTVM_SUPABASE_URL }}
+          TTVM_SUPABASE_ANON_KEY: ${{ secrets.TTVM_SUPABASE_ANON_KEY }}
+          TTVM_TIKTOK_SOUND_IDS: ${{ secrets.TTVM_TIKTOK_SOUND_IDS }}
+          TTVM_TIKTOK_MS_TOKEN: ${{ secrets.TTVM_TIKTOK_MS_TOKEN }}
+          TTVM_MAX_VIDEOS_PER_SOUND: "200"
+          TTVM_FETCH_RETRIES: "3"
+          TTVM_RETRY_DELAY_SECONDS: "3"
+        run: python scripts/tt_try_fetch.py
+

@@ -24,6 +24,20 @@ def to_int(value: Any) -> int:
         return 0
 
 
+def to_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "n", "off"}:
+            return False
+    return default
+
+
 def to_iso(value: Any) -> str:
     if isinstance(value, (int, float)):
         return datetime.fromtimestamp(int(value), tz=timezone.utc).isoformat()
@@ -88,16 +102,40 @@ def extract_creator_followers(video_data: dict[str, Any], author: dict[str, Any]
 
 
 async def collect_videos(
-    sound_ids: list[str], max_videos_per_sound: int, ms_token: str | None
+    sound_ids: list[str],
+    max_videos_per_sound: int,
+    ms_token: str | None,
+    browser: str,
+    headless: bool,
+    session_sleep_after_seconds: int,
+    proxies: list[str] | None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     output: list[dict[str, Any]] = []
     sound_stats: list[dict[str, Any]] = []
 
     async with TikTokApi() as api:
+        session_kwargs: dict[str, Any] = {
+            "num_sessions": 1,
+            "sleep_after": max(1, session_sleep_after_seconds),
+            "browser": browser,
+            "headless": headless,
+        }
         if ms_token:
-            await api.create_sessions(ms_tokens=[ms_token], num_sessions=1, sleep_after=3)
-        else:
-            await api.create_sessions(num_sessions=1, sleep_after=3)
+            session_kwargs["ms_tokens"] = [ms_token]
+        if proxies:
+            session_kwargs["proxies"] = proxies
+
+        try:
+            await api.create_sessions(**session_kwargs)
+        except TypeError:
+            # Compatibility fallback for older TikTokApi signatures.
+            fallback_kwargs: dict[str, Any] = {
+                "num_sessions": 1,
+                "sleep_after": max(1, session_sleep_after_seconds),
+            }
+            if ms_token:
+                fallback_kwargs["ms_tokens"] = [ms_token]
+            await api.create_sessions(**fallback_kwargs)
 
         for sound_id in sound_ids:
             sound = api.sound(id=sound_id)
@@ -147,6 +185,10 @@ async def collect_videos_with_retries(
     sound_ids: list[str],
     max_videos_per_sound: int,
     ms_token: str | None,
+    browser: str,
+    headless: bool,
+    session_sleep_after_seconds: int,
+    proxies: list[str] | None,
     retries: int,
     retry_delay_seconds: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -158,6 +200,10 @@ async def collect_videos_with_retries(
                 sound_ids=sound_ids,
                 max_videos_per_sound=max_videos_per_sound,
                 ms_token=ms_token,
+                browser=browser,
+                headless=headless,
+                session_sleep_after_seconds=session_sleep_after_seconds,
+                proxies=proxies,
             )
         except Exception as error:  # pragma: no cover - runtime resilience path
             last_error = error if isinstance(error, Exception) else Exception(str(error))
@@ -180,6 +226,11 @@ async def main() -> int:
     sound_ids = parse_sound_ids((os.getenv("TTVM_TIKTOK_SOUND_IDS", "") or "").strip())
     function_name = (os.getenv("TTVM_FUNCTION_NAME", "tt-auto-fetch") or "").strip()
     ms_token = (os.getenv("TTVM_TIKTOK_MS_TOKEN", "") or "").strip() or None
+    browser = (os.getenv("TTVM_TIKTOK_BROWSER", "webkit") or "").strip() or "webkit"
+    headless = to_bool(os.getenv("TTVM_TIKTOK_HEADLESS", "false"), default=False)
+    session_sleep_after_seconds = to_int(os.getenv("TTVM_SESSION_SLEEP_AFTER_SECONDS", "5"))
+    proxy = (os.getenv("TTVM_TIKTOK_PROXY", "") or "").strip() or None
+    proxies = [proxy] if proxy else None
     max_videos = to_int(os.getenv("TTVM_MAX_VIDEOS_PER_SOUND", "20"))
     fetch_retries = to_int(os.getenv("TTVM_FETCH_RETRIES", "3"))
     retry_delay_seconds = to_int(os.getenv("TTVM_RETRY_DELAY_SECONDS", "3"))
@@ -197,6 +248,10 @@ async def main() -> int:
         sound_ids=sound_ids,
         max_videos_per_sound=max_videos,
         ms_token=ms_token,
+        browser=browser,
+        headless=headless,
+        session_sleep_after_seconds=session_sleep_after_seconds,
+        proxies=proxies,
         retries=fetch_retries,
         retry_delay_seconds=retry_delay_seconds,
     )

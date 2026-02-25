@@ -32,7 +32,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install TikTokApi playwright
-          python -m playwright install chromium --with-deps
+          python -m playwright install webkit --with-deps
 
       - name: Run fetch script
         env:

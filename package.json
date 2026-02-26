@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "fetch:tt:ts": "tsx scripts/tt_try_fetch.ts"
+    "fetch:tt:ts": "node --env-file=.env --import tsx scripts/tt_try_fetch.ts"
   },
   "devDependencies": {
     "tsx": "^4.20.6",

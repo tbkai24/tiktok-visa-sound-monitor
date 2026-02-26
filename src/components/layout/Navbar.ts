@@ -9,9 +9,9 @@ export const renderNavbar = () => `
         </div>
       </div>
       <nav class="nav-links">
-        <button class="nav-link active" data-tab="overview">Overview</button>
+        <button class="nav-link active" data-tab="overview">Homepage</button>
         <button class="nav-link" data-tab="videos">Videos</button>
-        <button class="nav-link" data-tab="milestones">Milestones</button>
+        <button class="nav-link" data-tab="milestones">Milestone</button>
       </nav>
     </div>
   </header>

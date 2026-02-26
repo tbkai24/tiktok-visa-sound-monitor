@@ -223,6 +223,34 @@ h3 {
   font-size: 0.78rem;
 }
 
+.analytics-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.select {
+  border: 1px solid #2a3358;
+  border-radius: 10px;
+  background: #0b122b;
+  color: #e7eeff;
+  padding: 0.5rem 0.75rem;
+  min-height: 40px;
+  font-size: 0.95rem;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #4f7ff8;
+  box-shadow: 0 0 0 1px rgba(79, 127, 248, 0.35);
+}
+
+.select option {
+  background: #0b122b;
+  color: #e7eeff;
+}
+
 .bars {
   height: 170px;
   display: grid;
@@ -353,6 +381,12 @@ td {
 th {
   color: #b7bed9;
   font-size: 0.82rem;
+}
+
+.latest-change-row td {
+  border-top: 1px solid #2a3358;
+  font-weight: 600;
+  background: rgba(15, 22, 46, 0.55);
 }
 
 .video-link {

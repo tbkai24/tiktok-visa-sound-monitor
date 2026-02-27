@@ -118,11 +118,27 @@ const formatPosted = (iso: string | null) => {
 
 const parseDismissedTargets = () => {
   try {
-    const raw = window.localStorage.getItem(DISMISSED_TARGETS_KEY);
+    const raw = safeStorageGet(DISMISSED_TARGETS_KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
     return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "number") : [];
   } catch {
     return [];
+  }
+};
+
+const safeStorageGet = (key: string) => {
+  try {
+    return window.localStorage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const safeStorageSet = (key: string, value: string) => {
+  try {
+    window.localStorage?.setItem(key, value);
+  } catch {
+    // Some in-app browsers block localStorage; ignore and continue.
   }
 };
 
@@ -450,12 +466,12 @@ export const renderHomePage = (root: HTMLDivElement) => {
   const maybeShowCongrats = (allTimePosts: number, milestones: MilestoneRow[]) => {
     const targets = milestones.map((row) => row.target_posts).sort((a, b) => a - b);
     if (!targets.length) return;
-    const lastTotal = Number(window.localStorage.getItem(LAST_TOTAL_KEY) ?? "0");
+    const lastTotal = Number(safeStorageGet(LAST_TOTAL_KEY) ?? "0");
     const dismissed = parseDismissedTargets();
     const crossed = targets.filter(
       (target) => lastTotal < target && allTimePosts >= target && !dismissed.includes(target),
     );
-    window.localStorage.setItem(LAST_TOTAL_KEY, String(allTimePosts));
+    safeStorageSet(LAST_TOTAL_KEY, String(allTimePosts));
     if (!crossed.length) return;
 
     const target = crossed[crossed.length - 1];
@@ -477,7 +493,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
     const closeBtn = document.getElementById("tt-congrats-close");
     closeBtn?.addEventListener("click", () => {
       const next = [...new Set([...dismissed, target])];
-      window.localStorage.setItem(DISMISSED_TARGETS_KEY, JSON.stringify(next));
+      safeStorageSet(DISMISSED_TARGETS_KEY, JSON.stringify(next));
       modal.remove();
     });
   };

@@ -571,7 +571,6 @@ export const renderHomePage = (root: HTMLDivElement) => {
     const barsRows = dayRows.slice(-14);
     const analyticsLiveEl = document.getElementById("analytics-live");
     const latestSeries = series.length ? series[series.length - 1] : null;
-    const previousSeries = series.length > 1 ? series[series.length - 2] : null;
 
     const currentPoint = (() => {
       const valid = currentStatsRows.filter((row) => !!row.captured_at);
@@ -596,13 +595,27 @@ export const renderHomePage = (root: HTMLDivElement) => {
       (!latestSeries ||
         new Date(currentPoint.capturedAt).getTime() > new Date(latestSeries.capturedAt).getTime());
     const latestPoint = useCurrentPoint ? currentPoint : latestSeries;
-    const previousPoint = useCurrentPoint ? latestSeries : previousSeries;
     const latestTotal = latestPoint?.total ?? 0;
     const todayKey = toDateKeyInTimezone(Date.now(), MANILA_TIMEZONE);
     const todaySeries = series.filter((item) => toDateKeyInTimezone(item.capturedAt, MANILA_TIMEZONE) === todayKey);
     const dayStartTotal = todaySeries.length ? todaySeries[0].total : latestTotal;
-    const latestDelta =
-      latestPoint && previousPoint ? latestTotal - previousPoint.total : latestPoint ? latestTotal - dayStartTotal : 0;
+    const latestDelta = (() => {
+      if (!latestPoint) return 0;
+      if (useCurrentPoint) {
+        // Do not mix fallback "current stats" with snapshot-derived series.
+        // If we only have current fallback for this capture, show 0 until history has a previous capture.
+        return 0;
+      }
+      const pointsForDelta = [...series].sort(
+        (a, b) => new Date(a.capturedAt).getTime() - new Date(b.capturedAt).getTime(),
+      );
+      for (let i = pointsForDelta.length - 2; i >= 0; i -= 1) {
+        if (pointsForDelta[i].total !== latestTotal) {
+          return latestTotal - pointsForDelta[i].total;
+        }
+      }
+      return latestPoint ? latestTotal - dayStartTotal : 0;
+    })();
     const latestCapturedLabel = latestPoint
       ? new Date(latestPoint.capturedAt).toLocaleString("en-PH", { timeZone: MANILA_TIMEZONE })
       : null;

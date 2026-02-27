@@ -1,5 +1,6 @@
 import { renderFooter } from "../../components/layout/Footer";
 import { renderNavbar } from "../../components/layout/Navbar";
+import { applyAppSettingsToLayout, DEFAULT_APP_SETTINGS, toAppSettings } from "../../lib/appSettings";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 type VideoRow = {
@@ -245,20 +246,20 @@ export const renderHomePage = (root: HTMLDivElement) => {
             <button type="button" class="subtab" data-video-tab="new">New</button>
             <button type="button" class="subtab" data-video-tab="big">Big Creator</button>
           </div>
-          <article id="video-panel-viral" class="glass-card table-wrap video-panel active">
-            <div class="row-head"><h3>Top Viral Videos</h3><span class="pill">By views</span></div>
-            <table>
-              <thead><tr><th>#</th><th>Video</th><th>Creator</th><th>Followers</th><th>Views</th><th>Likes</th><th>Comments</th><th>Shares</th></tr></thead>
-              <tbody id="viral-rows"></tbody>
-            </table>
+          <article id="video-panel-viral" class="glass-card table-wrap video-panel active"> 
+            <div class="row-head"><h3>Top Viral Videos</h3><span class="pill">By views</span></div> 
+            <table> 
+              <thead><tr><th>#</th><th>Date</th><th>Video</th><th>Creator</th><th>Followers</th><th>Views</th><th>Likes</th><th>Comments</th><th>Shares</th></tr></thead> 
+              <tbody id="viral-rows"></tbody> 
+            </table> 
             <div class="pager" data-target="viral-rows"><button type="button" class="pager-btn prev">Prev</button><span class="pager-info">Page 1</span><button type="button" class="pager-btn next">Next</button></div>
           </article>
-          <article id="video-panel-rising" class="glass-card table-wrap video-panel">
-            <div class="row-head"><h3>Rising Videos</h3><span class="pill">By engagement rate</span></div>
-            <table>
-              <thead><tr><th>#</th><th>Video</th><th>Creator</th><th>Followers</th><th>ER</th><th>Trend</th><th>Status</th></tr></thead>
-              <tbody id="rising-rows"></tbody>
-            </table>
+          <article id="video-panel-rising" class="glass-card table-wrap video-panel"> 
+            <div class="row-head"><h3>Rising Videos</h3><span class="pill">By engagement rate</span></div> 
+            <table> 
+              <thead><tr><th>#</th><th>Date</th><th>Video</th><th>Creator</th><th>Followers</th><th>ER</th><th>Trend</th><th>Status</th></tr></thead> 
+              <tbody id="rising-rows"></tbody> 
+            </table> 
             <div class="pager" data-target="rising-rows"><button type="button" class="pager-btn prev">Prev</button><span class="pager-info">Page 1</span><button type="button" class="pager-btn next">Next</button></div>
           </article>
           <article id="video-panel-new" class="glass-card table-wrap video-panel">
@@ -281,9 +282,9 @@ export const renderHomePage = (root: HTMLDivElement) => {
               </div>
             </div> 
             <table> 
-              <thead><tr><th>Creator</th><th>Video</th><th>Followers</th><th>Views</th><th>Likes</th><th>Comments</th><th>Shares</th></tr></thead>
-              <tbody id="big-creators-rows"></tbody>
-            </table>
+              <thead><tr><th>Date</th><th>Creator</th><th>Video</th><th>Followers</th><th>Views</th><th>Likes</th><th>Comments</th><th>Shares</th></tr></thead> 
+              <tbody id="big-creators-rows"></tbody> 
+            </table> 
             <div class="pager" data-target="big-creators-rows"><button type="button" class="pager-btn prev">Prev</button><span class="pager-info">Page 1</span><button type="button" class="pager-btn next">Next</button></div>
           </article>
         </section>
@@ -661,7 +662,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
       return bv - av;
     });
     viralRows.innerHTML = viral
-      .map((video, index) => `<tr><td>#${index + 1}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
+      .map((video, index) => `<tr><td>#${index + 1}</td><td>${formatPosted(video.posted_at)}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
         video.creator_username,
       )}</td><td>${formatCompact(video.creator_followers ?? 0)}</td><td>${formatCompact(
         video.views ?? 0,
@@ -670,7 +671,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
       )}</td></tr>`)
       .join("");
     risingRows.innerHTML = rising
-      .map((video, index) => `<tr><td>#${index + 1}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
+      .map((video, index) => `<tr><td>#${index + 1}</td><td>${formatPosted(video.posted_at)}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
         video.creator_username,
       )}</td><td>${formatCompact(video.creator_followers ?? 0)}</td><td>${(
         (video.engagement_rate ?? 0) * 100
@@ -728,7 +729,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
       ? bigCreators
           .map(
             (item) =>
-              `<tr><td>${makeCreatorLink(item.creator)}</td><td class="video-cell">${
+              `<tr><td>${item.topVideo ? formatPosted(item.topVideo.posted_at) : "-"}</td><td>${makeCreatorLink(item.creator)}</td><td class="video-cell">${
                 item.topVideo ? makeThumb(item.topVideo) : "-"
               }</td><td>${formatCompact(item.followers)}</td><td>${formatCompact(
                 item.views,
@@ -737,7 +738,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
               )}</td></tr>`,
           )
           .join("")
-      : `<tr><td colspan="7" class="muted">No big creators yet.</td></tr>`;
+      : `<tr><td colspan="8" class="muted">No big creators yet.</td></tr>`;
 
     setupPager("viral-rows");
     setupPager("rising-rows");
@@ -748,6 +749,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
   const renderOverviewTop = ( 
     videos: VideoRow[], 
     stats: SoundStatsRow[], 
+    milestones: MilestoneRow[],
   ): number => { 
     const allTimeByStats = Math.max(0, ...stats.map((row) => row.total_posts ?? 0)); 
     const allTimePosts = allTimeByStats || videos.length; 
@@ -756,9 +758,8 @@ export const renderHomePage = (root: HTMLDivElement) => {
     const creatorSet = new Set(videos.map((video) => (video.creator_username ?? "").trim()).filter(Boolean));
     const creatorEl = document.getElementById("kpi-creators");
     if (creatorEl) creatorEl.textContent = formatNumber(creatorSet.size);
-    // Keep helper flows wired to avoid stale local-state regressions while homepage is analytics-only. 
-    renderMilestones(allTimePosts, []); 
-    maybeShowCongrats(allTimePosts, []); 
+    renderMilestones(allTimePosts, milestones); 
+    maybeShowCongrats(allTimePosts, milestones); 
     return allTimePosts;
   }; 
 
@@ -776,12 +777,12 @@ export const renderHomePage = (root: HTMLDivElement) => {
     }
 
     try {
-      const [videos, stats, statsHistory, snapshotsResult] = await Promise.all([
-        supabase
-          .from("tt_videos_current")
-          .select("video_id,video_url,title,thumbnail_url,creator_username,creator_followers,creator_size,posted_at,views,likes,comments,shares,favorites,engagement_total,engagement_rate")
-          .order("views", { ascending: false })
-          .limit(1000),
+      const [videos, stats, statsHistory, snapshotsResult, milestones, appSettings] = await Promise.all([ 
+        supabase 
+          .from("tt_videos_current") 
+          .select("video_id,video_url,title,thumbnail_url,creator_username,creator_followers,creator_size,posted_at,views,likes,comments,shares,favorites,engagement_total,engagement_rate") 
+          .order("views", { ascending: false }) 
+          .limit(1000), 
         supabase
           .from("tt_sound_stats_current")
           .select("sound_id,total_posts")
@@ -792,22 +793,51 @@ export const renderHomePage = (root: HTMLDivElement) => {
           .select("sound_id,total_posts_global,captured_at")
           .order("captured_at", { ascending: true })
           .limit(10000),
+        supabase 
+          .from("tt_video_snapshots") 
+          .select("sound_id,captured_at") 
+          .order("captured_at", { ascending: true }) 
+          .limit(10000), 
         supabase
-          .from("tt_video_snapshots")
-          .select("sound_id,captured_at")
-          .order("captured_at", { ascending: true })
-          .limit(10000),
-      ]);
-      if (videos.error) throw new Error(videos.error.message);
-      if (stats.error) throw new Error(stats.error.message);
-      if (statsHistory.error) throw new Error(statsHistory.error.message);
-      if (snapshotsResult.error) throw new Error(snapshotsResult.error.message);
-      const snapshots = snapshotsResult.data ?? [];
+          .from("tt_milestones")
+          .select("id,title,target_posts,sort_order,is_active")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("tt_app_settings")
+          .select("app_name,app_subtitle,logo_text,logo_url,footer_title,footer_subtitle,copyright_text,social_youtube,social_tiktok,social_facebook,social_instagram")
+          .eq("id", 1)
+          .maybeSingle(),
+      ]); 
+      if (videos.error) throw new Error(videos.error.message); 
+      if (stats.error) throw new Error(stats.error.message); 
+      if (statsHistory.error) throw new Error(statsHistory.error.message); 
+      if (snapshotsResult.error) throw new Error(snapshotsResult.error.message); 
+      if (milestones.error) throw new Error(milestones.error.message); 
+      if (appSettings.error) throw new Error(appSettings.error.message); 
+      const snapshots = snapshotsResult.data ?? []; 
+      const branding = appSettings.data
+        ? toAppSettings({
+            appName: appSettings.data.app_name,
+            appSubtitle: appSettings.data.app_subtitle,
+            logoText: appSettings.data.logo_text,
+            logoUrl: appSettings.data.logo_url,
+            footerTitle: appSettings.data.footer_title,
+            footerSubtitle: appSettings.data.footer_subtitle,
+            copyrightText: appSettings.data.copyright_text,
+            socialYoutube: appSettings.data.social_youtube,
+            socialTiktok: appSettings.data.social_tiktok,
+            socialFacebook: appSettings.data.social_facebook,
+            socialInstagram: appSettings.data.social_instagram,
+          })
+        : DEFAULT_APP_SETTINGS;
+      applyAppSettingsToLayout(branding);
       latestVideosRows = (videos.data ?? []) as VideoRow[];
       renderVideos(latestVideosRows);
       latestAllTimePosts = renderOverviewTop( 
         (videos.data ?? []) as VideoRow[], 
         (stats.data ?? []) as SoundStatsRow[], 
+        (milestones.data ?? []) as MilestoneRow[],
       ); 
       latestHistoryRows = (statsHistory.data ?? []) as SoundStatsHistoryRow[];
       latestSnapshotRows = snapshots as SnapshotRow[];

@@ -1,5 +1,11 @@
 import { renderFooter } from "../../components/layout/Footer";
-import { supabase, supabaseConfigError } from "../../lib/supabase";
+import { 
+  applyAppSettingsToLayout,
+  DEFAULT_APP_SETTINGS, 
+  toAppSettings, 
+  type AppSettings, 
+} from "../../lib/appSettings"; 
+import { supabase, supabaseConfigError } from "../../lib/supabase"; 
 
 type SoundStatsRow = {
   sound_id: string;
@@ -173,17 +179,62 @@ export const renderAdminPage = (root: HTMLDivElement) => {
                   <h3>Settings</h3>
                   <span class="pill">Runtime</span>
                 </div>
+                <div id="admin-settings-alert" class="admin-alert" style="display:none"></div>
                 <div class="settings-grid">
                   <label>
-                    <span>Auto refresh (seconds)</span>
-                    <input id="admin-refresh-seconds" type="number" min="10" max="300" value="30" />
+                    <span>App Name</span>
+                    <input id="admin-app-name" type="text" />
+                  </label>
+                  <label>
+                    <span>Tagline / Subtitle</span>
+                    <input id="admin-app-subtitle" type="text" />
+                  </label>
+                  <label>
+                    <span>Logo Text (1-2 chars)</span>
+                    <input id="admin-logo-text" type="text" maxlength="2" />
+                  </label>
+                  <label>
+                    <span>Logo URL (image)</span>
+                    <input id="admin-logo-url" type="url" placeholder="https://..." />
+                  </label>
+                  <label>
+                    <span>Footer Title</span>
+                    <input id="admin-footer-title" type="text" />
+                  </label>
+                  <label>
+                    <span>Footer Subtitle</span>
+                    <input id="admin-footer-subtitle" type="text" />
+                  </label>
+                  <label>
+                    <span>Copyright Text</span>
+                    <input id="admin-copyright-text" type="text" />
+                  </label>
+                  <label>
+                    <span>YouTube URL</span>
+                    <input id="admin-social-youtube" type="url" placeholder="https://youtube.com/..." />
+                  </label>
+                  <label>
+                    <span>TikTok URL</span>
+                    <input id="admin-social-tiktok" type="url" placeholder="https://tiktok.com/@..." />
+                  </label>
+                  <label>
+                    <span>Facebook URL</span>
+                    <input id="admin-social-facebook" type="url" placeholder="https://facebook.com/..." />
+                  </label>
+                  <label>
+                    <span>Instagram URL</span>
+                    <input id="admin-social-instagram" type="url" placeholder="https://instagram.com/..." />
                   </label>
                   <label>
                     <span>Tracked Sound IDs (read-only)</span>
                     <input id="admin-sound-ids" type="text" readonly />
                   </label>
                 </div>
-                <p class="muted">Sound IDs are managed from env and function secrets.</p>
+                <div class="icon-actions" style="margin-top:10px;">
+                  <button type="button" id="admin-settings-save" class="small-btn">Save Settings</button>
+                  <button type="button" id="admin-settings-reset" class="small-btn">Reset Defaults</button>
+                </div>
+                <p class="muted">Name/logo/footer settings are applied immediately after save + refresh.</p>
               </article>
             </section>
           </section>
@@ -210,6 +261,20 @@ export const renderAdminPage = (root: HTMLDivElement) => {
   });
 
   const soundIdsInput = document.getElementById("admin-sound-ids") as HTMLInputElement | null;
+  const settingsAlertEl = document.getElementById("admin-settings-alert") as HTMLDivElement | null;
+  const appNameInput = document.getElementById("admin-app-name") as HTMLInputElement | null;
+  const appSubtitleInput = document.getElementById("admin-app-subtitle") as HTMLInputElement | null; 
+  const logoTextInput = document.getElementById("admin-logo-text") as HTMLInputElement | null; 
+  const logoUrlInput = document.getElementById("admin-logo-url") as HTMLInputElement | null;
+  const footerTitleInput = document.getElementById("admin-footer-title") as HTMLInputElement | null; 
+  const footerSubtitleInput = document.getElementById("admin-footer-subtitle") as HTMLInputElement | null; 
+  const copyrightTextInput = document.getElementById("admin-copyright-text") as HTMLInputElement | null;
+  const socialYoutubeInput = document.getElementById("admin-social-youtube") as HTMLInputElement | null;
+  const socialTiktokInput = document.getElementById("admin-social-tiktok") as HTMLInputElement | null;
+  const socialFacebookInput = document.getElementById("admin-social-facebook") as HTMLInputElement | null;
+  const socialInstagramInput = document.getElementById("admin-social-instagram") as HTMLInputElement | null;
+  const settingsSaveBtn = document.getElementById("admin-settings-save") as HTMLButtonElement | null;
+  const settingsResetBtn = document.getElementById("admin-settings-reset") as HTMLButtonElement | null;
   const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
   if (soundIdsInput) {
     soundIdsInput.value =
@@ -217,6 +282,26 @@ export const renderAdminPage = (root: HTMLDivElement) => {
       env.TIKTOK_SOUND_IDS ??
       "Set TTVM_TIKTOK_SOUND_IDS in .env";
   }
+  const fillSettingsForm = (settings: AppSettings) => { 
+    if (appNameInput) appNameInput.value = settings.appName; 
+    if (appSubtitleInput) appSubtitleInput.value = settings.appSubtitle; 
+    if (logoTextInput) logoTextInput.value = settings.logoText; 
+    if (logoUrlInput) logoUrlInput.value = settings.logoUrl;
+    if (footerTitleInput) footerTitleInput.value = settings.footerTitle; 
+    if (footerSubtitleInput) footerSubtitleInput.value = settings.footerSubtitle; 
+    if (copyrightTextInput) copyrightTextInput.value = settings.copyrightText;
+    if (socialYoutubeInput) socialYoutubeInput.value = settings.socialYoutube;
+    if (socialTiktokInput) socialTiktokInput.value = settings.socialTiktok;
+    if (socialFacebookInput) socialFacebookInput.value = settings.socialFacebook;
+    if (socialInstagramInput) socialInstagramInput.value = settings.socialInstagram;
+  }; 
+  const setSettingsAlert = (type: "success" | "error", message: string) => { 
+    if (!settingsAlertEl) return; 
+    settingsAlertEl.style.display = "block"; 
+    settingsAlertEl.className = `admin-alert ${type}`; 
+    settingsAlertEl.textContent = message; 
+  }; 
+  fillSettingsForm(DEFAULT_APP_SETTINGS);
 
   const rowsEl = document.getElementById("admin-milestone-rows");
   const targetsEl = document.getElementById("admin-target-rows");
@@ -245,10 +330,112 @@ export const renderAdminPage = (root: HTMLDivElement) => {
       supabaseConfigError ?? "Supabase is not configured.",
     )}</td></tr>`;
     return;
-  }
-  const client = supabase;
+  } 
+  const client = supabase; 
 
-  const renderTargets = (targetRows: MilestoneTargetRow[]) => {
+  const loadAppSettings = async () => {
+    const { data, error } = await client
+      .from("tt_app_settings")
+      .select(
+        "app_name,app_subtitle,logo_text,logo_url,footer_title,footer_subtitle,copyright_text,social_youtube,social_tiktok,social_facebook,social_instagram",
+      )
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) {
+      setSettingsAlert("error", `Settings load failed: ${error.message}`);
+      fillSettingsForm(DEFAULT_APP_SETTINGS);
+      applyAppSettingsToLayout(DEFAULT_APP_SETTINGS);
+      return DEFAULT_APP_SETTINGS;
+    }
+    const mapped = data
+      ? toAppSettings({
+          appName: data.app_name,
+          appSubtitle: data.app_subtitle,
+          logoText: data.logo_text,
+          logoUrl: data.logo_url,
+          footerTitle: data.footer_title,
+          footerSubtitle: data.footer_subtitle,
+          copyrightText: data.copyright_text,
+          socialYoutube: data.social_youtube,
+          socialTiktok: data.social_tiktok,
+          socialFacebook: data.social_facebook,
+          socialInstagram: data.social_instagram,
+        })
+      : DEFAULT_APP_SETTINGS;
+    fillSettingsForm(mapped);
+    applyAppSettingsToLayout(mapped);
+    return mapped;
+  };
+
+  settingsSaveBtn?.addEventListener("click", async () => {
+    const next = toAppSettings({
+      appName: appNameInput?.value ?? "",
+      appSubtitle: appSubtitleInput?.value ?? "",
+      logoText: logoTextInput?.value ?? "",
+      logoUrl: logoUrlInput?.value ?? "",
+      footerTitle: footerTitleInput?.value ?? "",
+      footerSubtitle: footerSubtitleInput?.value ?? "",
+      copyrightText: copyrightTextInput?.value ?? "",
+      socialYoutube: socialYoutubeInput?.value ?? "",
+      socialTiktok: socialTiktokInput?.value ?? "",
+      socialFacebook: socialFacebookInput?.value ?? "",
+      socialInstagram: socialInstagramInput?.value ?? "",
+    });
+    const { error } = await client.from("tt_app_settings").upsert(
+      {
+        id: 1,
+        app_name: next.appName,
+        app_subtitle: next.appSubtitle,
+        logo_text: next.logoText,
+        logo_url: next.logoUrl,
+        footer_title: next.footerTitle,
+        footer_subtitle: next.footerSubtitle,
+        copyright_text: next.copyrightText,
+        social_youtube: next.socialYoutube,
+        social_tiktok: next.socialTiktok,
+        social_facebook: next.socialFacebook,
+        social_instagram: next.socialInstagram,
+      },
+      { onConflict: "id" },
+    );
+    if (error) {
+      setSettingsAlert("error", `Settings save failed: ${error.message}`);
+      return;
+    }
+    fillSettingsForm(next);
+    applyAppSettingsToLayout(next);
+    setSettingsAlert("success", "Settings saved.");
+  });
+
+  settingsResetBtn?.addEventListener("click", async () => {
+    const next = DEFAULT_APP_SETTINGS;
+    const { error } = await client.from("tt_app_settings").upsert(
+      {
+        id: 1,
+        app_name: next.appName,
+        app_subtitle: next.appSubtitle,
+        logo_text: next.logoText,
+        logo_url: next.logoUrl,
+        footer_title: next.footerTitle,
+        footer_subtitle: next.footerSubtitle,
+        copyright_text: next.copyrightText,
+        social_youtube: next.socialYoutube,
+        social_tiktok: next.socialTiktok,
+        social_facebook: next.socialFacebook,
+        social_instagram: next.socialInstagram,
+      },
+      { onConflict: "id" },
+    );
+    if (error) {
+      setSettingsAlert("error", `Settings reset failed: ${error.message}`);
+      return;
+    }
+    fillSettingsForm(next);
+    applyAppSettingsToLayout(next);
+    setSettingsAlert("success", "Settings reset to defaults.");
+  });
+
+  const renderTargets = (targetRows: MilestoneTargetRow[]) => { 
     if (!targetRows.length) {
       targetsEl.innerHTML = `<tr><td colspan="5" class="muted">No milestone targets yet.</td></tr>`;
       return;
@@ -363,14 +550,15 @@ export const renderAdminPage = (root: HTMLDivElement) => {
     setupPager("admin-milestone-rows");
   };
 
-  void client.auth.getSession().then(async ({ data }) => {
-    if (!data.session) {
-      window.location.replace("/admin/login");
-      return;
-    }
-    await loadStats();
-    await loadTargets();
-  });
+  void client.auth.getSession().then(async ({ data }) => { 
+    if (!data.session) { 
+      window.location.replace("/admin/login"); 
+      return; 
+    } 
+    await loadAppSettings();
+    await loadStats(); 
+    await loadTargets(); 
+  }); 
 
   addBtn.addEventListener("click", async () => {
     const title = titleInput.value.trim();

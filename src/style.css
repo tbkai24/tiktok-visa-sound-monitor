@@ -64,6 +64,14 @@ a {
   place-items: center;
   font-size: 0.85rem;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand-title,
@@ -134,6 +142,45 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
+}
+
+.footer-brand {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.footer-title {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.footer-meta {
+  margin: 0;
+  color: #9ba7ca;
+  font-size: 0.85rem;
+}
+
+.footer-links {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.footer-social {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.footer-social-link {
+  color: #9fb2ff;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.footer-social-link:hover {
+  text-decoration: underline;
 }
 
 .tab-panel,
@@ -695,5 +742,9 @@ th {
   .footer-inner {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .footer-links {
+    justify-items: start;
   }
 }

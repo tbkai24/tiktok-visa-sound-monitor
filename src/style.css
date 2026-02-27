@@ -378,8 +378,13 @@ h3 {
   background: linear-gradient(90deg, #4f7ff8, #8bb3ff);
 }
 
-.table-wrap {
-  overflow-x: auto;
+.table-wrap { 
+  overflow-x: auto; 
+} 
+
+.milestone-progress-panel table,
+.milestone-progress-panel .pager {
+  display: none;
 }
 
 .pager {

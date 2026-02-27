@@ -289,8 +289,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
           </article>
         </section>
         <section id="panel-milestones" class="tab-panel">
-          <div class="milestone-grid" id="milestone-cards"></div>
-          <article class="glass-card table-wrap">
+          <article class="glass-card table-wrap milestone-progress-panel">
             <div class="row-head"><h3>Milestone Progress</h3><span class="pill">Targets</span></div>
             <table>
               <thead><tr><th>Milestone</th><th>Target</th><th>Current</th><th>Progress</th><th>Remaining</th></tr></thead>
@@ -298,6 +297,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
             </table>
             <div class="pager" data-target="milestone-rows"><button type="button" class="pager-btn prev">Prev</button><span class="pager-info">Page 1</span><button type="button" class="pager-btn next">Next</button></div>
           </article>
+          <div class="milestone-grid" id="milestone-cards"></div>
         </section>
       </main> 
       ${renderFooter()}
@@ -655,7 +655,9 @@ export const renderHomePage = (root: HTMLDivElement) => {
       engagement_total: video.engagement_total ?? 0,
     }));
     const viral = [...withDefaults].sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
-    const rising = [...withDefaults].sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0));
+    const rising = [...withDefaults]
+      .filter((video) => (video.views ?? 0) >= 5_000)
+      .sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0));
     const newest = [...withDefaults].sort((a, b) => {
       const av = a.posted_at ? new Date(a.posted_at).getTime() : 0;
       const bv = b.posted_at ? new Date(b.posted_at).getTime() : 0;
@@ -670,15 +672,17 @@ export const renderHomePage = (root: HTMLDivElement) => {
         video.shares ?? 0,
       )}</td></tr>`)
       .join("");
-    risingRows.innerHTML = rising
-      .map((video, index) => `<tr><td>#${index + 1}</td><td>${formatPosted(video.posted_at)}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
-        video.creator_username,
-      )}</td><td>${formatCompact(video.creator_followers ?? 0)}</td><td>${(
-        (video.engagement_rate ?? 0) * 100
-      ).toFixed(1)}%</td><td class="up">+${Math.round((video.engagement_rate ?? 0) * 1000)}%</td><td class="up">${
-        (video.creator_size ?? "small") === "big" ? "Big creator" : "Rising fast"
-      }</td></tr>`)
-      .join("");
+    risingRows.innerHTML = rising.length
+      ? rising
+          .map((video, index) => `<tr><td>#${index + 1}</td><td>${formatPosted(video.posted_at)}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
+            video.creator_username,
+          )}</td><td>${formatCompact(video.creator_followers ?? 0)}</td><td>${(
+            (video.engagement_rate ?? 0) * 100
+          ).toFixed(1)}%</td><td class="up">+${Math.round((video.engagement_rate ?? 0) * 1000)}%</td><td class="up">${
+            (video.creator_size ?? "small") === "big" ? "Big creator" : "Rising fast"
+          }</td></tr>`)
+          .join("")
+      : `<tr><td colspan="8" class="muted">No rising videos (min 5,000 views).</td></tr>`;
     newRows.innerHTML = newest
       .map((video) => `<tr><td>${formatPosted(video.posted_at)}</td><td class="video-cell">${makeThumb(video)}</td><td>${makeCreatorLink(
         video.creator_username,

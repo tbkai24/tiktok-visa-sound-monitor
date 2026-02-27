@@ -24,6 +24,8 @@ type VideoRow = {
 type SoundStatsRow = {
   sound_id: string;
   total_posts: number;
+  total_posts_global?: number | null;
+  captured_at?: string | null;
 };
 
 type SoundStatsHistoryRow = {
@@ -342,11 +344,13 @@ export const renderHomePage = (root: HTMLDivElement) => {
   let customEndDate: string | null = null; 
   let latestHistoryRows: SoundStatsHistoryRow[] = []; 
   let latestSnapshotRows: SnapshotRow[] = []; 
+  let latestCurrentStatsRows: SoundStatsRow[] = [];
   let latestAllTimePosts = 0;
   const refreshOverviewDaily = () => { 
     renderOverviewDaily( 
       latestHistoryRows, 
       latestSnapshotRows, 
+      latestCurrentStatsRows,
       analyticsRange,
       customStartDate,
       customEndDate,
@@ -481,6 +485,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
   const renderOverviewDaily = ( 
     historyRows: SoundStatsHistoryRow[], 
     snapshots: SnapshotRow[], 
+    currentStatsRows: SoundStatsRow[],
     selectedRange: AnalyticsRange, 
     customStart: string | null, 
     customEnd: string | null, 
@@ -566,13 +571,40 @@ export const renderHomePage = (root: HTMLDivElement) => {
     const barsRows = dayRows.slice(-14);
     const analyticsLiveEl = document.getElementById("analytics-live");
     const latestSeries = series.length ? series[series.length - 1] : null;
-    const latestTotal = latestSeries?.total ?? 0;
+    const previousSeries = series.length > 1 ? series[series.length - 2] : null;
+
+    const currentPoint = (() => {
+      const valid = currentStatsRows.filter((row) => !!row.captured_at);
+      if (!valid.length) return null;
+      const latestTs = valid
+        .map((row) => new Date(String(row.captured_at)).getTime())
+        .filter((value) => Number.isFinite(value))
+        .sort((a, b) => b - a)[0];
+      if (!Number.isFinite(latestTs)) return null;
+      const total = valid.reduce((sum, row) => {
+        const value = Number(row.total_posts_global ?? row.total_posts ?? 0);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      return {
+        capturedAt: new Date(latestTs).toISOString(),
+        total,
+      };
+    })();
+
+    const useCurrentPoint =
+      !!currentPoint &&
+      (!latestSeries ||
+        new Date(currentPoint.capturedAt).getTime() > new Date(latestSeries.capturedAt).getTime());
+    const latestPoint = useCurrentPoint ? currentPoint : latestSeries;
+    const previousPoint = useCurrentPoint ? latestSeries : previousSeries;
+    const latestTotal = latestPoint?.total ?? 0;
     const todayKey = toDateKeyInTimezone(Date.now(), MANILA_TIMEZONE);
     const todaySeries = series.filter((item) => toDateKeyInTimezone(item.capturedAt, MANILA_TIMEZONE) === todayKey);
     const dayStartTotal = todaySeries.length ? todaySeries[0].total : latestTotal;
-    const latestDelta = latestSeries ? latestTotal - dayStartTotal : 0;
-    const latestCapturedLabel = latestSeries
-      ? new Date(latestSeries.capturedAt).toLocaleString("en-PH", { timeZone: MANILA_TIMEZONE })
+    const latestDelta =
+      latestPoint && previousPoint ? latestTotal - previousPoint.total : latestPoint ? latestTotal - dayStartTotal : 0;
+    const latestCapturedLabel = latestPoint
+      ? new Date(latestPoint.capturedAt).toLocaleString("en-PH", { timeZone: MANILA_TIMEZONE })
       : null;
     if (analyticsLiveEl) {
       analyticsLiveEl.textContent = latestCapturedLabel
@@ -789,7 +821,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
           .limit(1000), 
         supabase
           .from("tt_sound_stats_current")
-          .select("sound_id,total_posts")
+          .select("sound_id,total_posts,total_posts_global,captured_at")
           .order("captured_at", { ascending: false })
           .limit(100),
         supabase
@@ -845,6 +877,7 @@ export const renderHomePage = (root: HTMLDivElement) => {
       ); 
       latestHistoryRows = (statsHistory.data ?? []) as SoundStatsHistoryRow[];
       latestSnapshotRows = snapshots as SnapshotRow[];
+      latestCurrentStatsRows = (stats.data ?? []) as SoundStatsRow[];
       refreshOverviewDaily();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load data";
